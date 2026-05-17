@@ -2,11 +2,21 @@ export const api = {
   token: localStorage.getItem('pomo_token'),
   
   async request(path: string, options: RequestInit = {}) {
-    const headers = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...(this.token ? { 'Authorization': `Bearer ${this.token}` } : {}),
-      ...(options.headers || {}),
+      ...(options.headers as any || {}),
     };
+
+    if (this.token && typeof this.token === 'string' && this.token.length > 10) {
+      // Validate that the token is ASCII to avoid "The string did not match the expected pattern"
+      // which happens at the browser's fetch level if non-ASCII is in headers.
+      if (/^[\x00-\x7F]*$/.test(this.token)) {
+        headers['Authorization'] = `Bearer ${this.token}`;
+      } else {
+        console.error('Invalid token characters detected, clearing token');
+        this.logout();
+      }
+    }
 
     const res = await fetch(path, { ...options, headers });
     if (!res.ok) {
