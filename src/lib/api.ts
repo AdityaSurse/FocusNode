@@ -15,7 +15,7 @@ export const api = {
       if (/^[\x00-\x7F]*$/.test(cleanToken)) {
         headers['Authorization'] = `Bearer ${cleanToken}`;
       } else {
-        console.warn('[API] Non-ASCII token detected. Character codes:', [...cleanToken].map(c => c.charCodeAt(0)));
+        console.warn('[API] Non-ASCII token detected');
       }
     }
 
@@ -23,13 +23,8 @@ export const api = {
       Object.assign(headers, options.headers);
     }
 
-    let fullPath = path;
-    if (!path.startsWith('http')) {
-      const origin = (typeof window !== 'undefined' && window.location.origin && window.location.origin !== 'null') 
-        ? window.location.origin 
-        : '';
-      fullPath = `${origin}${path}`;
-    }
+    // Use relative paths if possible to avoid origin issues in iframes
+    const fullPath = path.startsWith('http') ? path : path;
 
     try {
       const res = await fetch(fullPath, { ...options, headers });
@@ -38,10 +33,11 @@ export const api = {
       if (!res.ok) {
         if (contentType && contentType.includes('application/json')) {
           const err = await res.json();
+          console.error(`[API] Error ${res.status}:`, err);
           throw new Error(err.error || `Error ${res.status}`);
         } else {
           const text = await res.text();
-          console.error('[API] Non-JSON error:', text.slice(0, 500));
+          console.error(`[API] Non-JSON error ${res.status} for ${path}:`, text.slice(0, 500));
           throw new Error(`Server Error: ${res.status}`);
         }
       }
