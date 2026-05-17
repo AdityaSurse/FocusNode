@@ -25,6 +25,24 @@ export function Timer({ onSessionComplete, sessions = [], targetSessions, onTarg
   const [timeLeft, setTimeLeft] = useState(settings.work);
   const [isActive, setIsActive] = useState(false);
   const [workSessionsCompleted, setWorkSessionsCompleted] = useState(0);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(
+    typeof Notification !== 'undefined' ? Notification.permission : 'default'
+  );
+  
+  const requestPermission = async () => {
+    if (!("Notification" in window)) return;
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+  };
+
+  const notify = (title: string, body: string) => {
+    if (notificationPermission === 'granted') {
+      new Notification(title, {
+        body,
+        icon: '/favicon.ico'
+      });
+    }
+  };
   
   const dailyProgress = React.useMemo(() => {
     const today = startOfDay(new Date());
@@ -115,6 +133,13 @@ export function Timer({ onSessionComplete, sessions = [], targetSessions, onTarg
     setIsActive(false);
     
     if (!isManualSkip) {
+      const modeLabels = {
+        work: 'Focus Session',
+        short_break: 'Short Break',
+        long_break: 'Long Break'
+      };
+      notify(`${modeLabels[mode]} Complete`, `Time to ${mode === 'work' ? 'take a break' : 'get back to work'}!`);
+
       try {
         await api.saveSession(mode, Math.ceil(settings[mode] / 60));
         onSessionComplete?.();
@@ -335,6 +360,23 @@ export function Timer({ onSessionComplete, sessions = [], targetSessions, onTarg
                         <Plus size={16} />
                       </button>
                     </div>
+                  </div>
+                </div>
+
+                <div className="pt-10 border-t border-white/5">
+                  <h5 className="text-[9px] font-bold text-brand uppercase tracking-[0.4em] mb-6">Notifications</h5>
+                  <div className="flex justify-between items-center bg-surface border border-border-subtle p-4 rounded-2xl">
+                    <span className="text-xs font-bold text-ink/60 uppercase tracking-widest">Browser Alerts</span>
+                    {notificationPermission === 'granted' ? (
+                      <span className="text-[9px] font-black text-brand uppercase tracking-widest bg-brand/10 px-3 py-1 rounded-full">Active</span>
+                    ) : (
+                      <button 
+                        onClick={requestPermission}
+                        className="px-6 py-2 bg-brand text-white text-[9px] font-black rounded-xl hover:bg-brand shadow-[0_5px_15px_rgba(59,130,246,0.3)] uppercase tracking-widest transition-all"
+                      >
+                        Enable
+                      </button>
+                    )}
                   </div>
                 </div>
 
