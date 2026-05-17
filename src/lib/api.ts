@@ -23,11 +23,18 @@ export const api = {
       Object.assign(headers, options.headers);
     }
 
-    // Use relative paths and let the browser resolve them.
-    // This is generally safer in various iframe/proxy environments.
-    const fullPath = path;
+    // Handle URL resolution robustly
+    let fullPath = path;
+    if (!path.startsWith('http')) {
+      // In some environments, specifically iframes with null origin, 
+      // relative paths can be problematic. We try to resolve relative to the script's location.
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+      if (baseUrl && baseUrl !== 'null') {
+        fullPath = `${baseUrl}${path}`;
+      }
+    }
 
-    console.log(`[API] Fetching ${fullPath} (Origin: ${typeof window !== 'undefined' ? window.location.origin : 'N/A'})`);
+    console.log(`[API] Req: ${fullPath} (Path: ${path})`);
 
     try {
       const res = await fetch(fullPath, { ...options, headers });

@@ -53,13 +53,6 @@ async function startServer() {
     next();
   });
 
-  const apiRouter = express.Router();
-
-  // API routes
-  apiRouter.get('/health', (req, res) => {
-    res.json({ status: 'ok', time: new Date().toISOString() });
-  });
-
   // Auth Middleware
   const authenticate = (req: any, res: any, next: any) => {
     const authHeader = req.headers.authorization;
@@ -70,24 +63,37 @@ async function startServer() {
       const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
       req['userId'] = decoded.userId;
       next();
-    } catch (err) {
+    } catch (err: any) {
       console.error('[AUTH] Token verification failed:', err.message);
       res.status(401).json({ error: 'Invalid token' });
     }
   };
 
+  // AI Setup
+  const ai = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY || '',
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      }
+    }
+  });
+
+  // API routes
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', time: new Date().toISOString() });
+  });
+
   // Auth Logic
-  apiRouter.post('/auth/sync', async (req, res) => {
+  app.post('/api/auth/sync', async (req, res) => {
     const { syncKey, isNew } = req.body;
-    
+    console.log(`[API] Auth sync: key=${syncKey}, isNew=${isNew}`);
     try {
       let user;
       if (syncKey && !isNew) {
-        // Joining existing node
         user = db.prepare('SELECT * FROM users WHERE sync_key = ?').get(syncKey) as any;
         if (!user) return res.status(404).json({ error: 'Sync key not found' });
       } else {
-        // Creating new node
         const id = generateId();
         const newSyncKey = Math.floor(10000000 + Math.random() * 90000000).toString();
         db.prepare('INSERT INTO users (id, sync_key) VALUES (?, ?)').run(id, newSyncKey);
@@ -103,16 +109,11 @@ async function startServer() {
   });
 
   // Sessions API
-  apiRouter.post('/sessions', authenticate, async (req: any, res) => {
+  app.post('/api/sessions', authenticate, async (req: any, res) => {
     const { sessionType, durationMinutes } = req.body;
     const id = generateId();
-    
     try {
-      db.prepare(`
-        INSERT INTO sessions (id, user_id, session_type, duration_minutes)
-        VALUES (?, ?, ?, ?)
-      `).run(id, req.userId, sessionType, durationMinutes);
-      
+      db.prepare('INSERT INTO sessions (id, user_id, session_type, duration_minutes) VALUES (?, ?, ?, ?)').run(id, req.userId, sessionType, durationMinutes);
       res.json({ success: true, id });
     } catch (error) {
       console.error('Save session error:', error);
@@ -120,7 +121,7 @@ async function startServer() {
     }
   });
 
-  apiRouter.delete('/sessions', authenticate, async (req: any, res) => {
+  app.delete('/api/sessions', authenticate, async (req: any, res) => {
     try {
       db.prepare('DELETE FROM sessions WHERE user_id = ?').run(req.userId);
       res.json({ success: true });
@@ -130,13 +131,9 @@ async function startServer() {
     }
   });
 
-  apiRouter.get('/sessions', authenticate, async (req: any, res) => {
+  app.get('/api/sessions', authenticate, async (req: any, res) => {
     try {
-      const sessions = db.prepare(`
-        SELECT * FROM sessions 
-        WHERE user_id = ? 
-        ORDER BY completed_at DESC
-      `).all(req.userId);
+      const sessions = db.prepare('SELECT * FROM sessions WHERE user_id = ? ORDER BY completed_at DESC').all(req.userId);
       res.json(sessions);
     } catch (error) {
       console.error('Get sessions error:', error);
@@ -144,79 +141,31 @@ async function startServer() {
     }
   });
 
-  // AI Setup
-  const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY || '',
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      }
-    }
-  });
-
-  apiRouter.post('/ai/insights', authenticate, async (req: any, res) => {
+  app.post('/api/ai/insights', authenticate, async (req: any, res) => {
     try {
       const sessions = db.prepare('SELECT session_type, duration_minutes, completed_at FROM sessions WHERE user_id = ? ORDER BY completed_at DESC LIMIT 50').all(req.userId) as any[];
-      
       if (!sessions || sessions.length === 0) {
-        return res.json({ 
-          tag: "INITIALIZING",
-          label: "CORE_READY",
-          tip: "Initialize node connection to begin focus telemetry analysis." 
-        });
+        return res.json({ tag: "INITIALIZING", label: "CORE_READY", tip: "Initialize node connection to begin focus telemetry analysis." });
       }
-
-      const prompt = `
-        Analyze these Pomodoro focus sessions for a user: ${JSON.stringify(sessions)}.
-        Provide a productivity insight based on their trends.
-        Style: Matrix/Cyberpunk themed (use terms like 'node', 'uplink', 'telemetry', 'neural', 'core').
-        Return a JSON object with:
-        {
-          "tag": "Short category like NEURAL_SYNC or CORE_OPTIMIZATION",
-          "label": "Short punchy title like SYSTEM_UPGRADE",
-          "tip": "Longer tip (max 25 words)"
-        }
-      `;
-
-      const result = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+      const prompt = `Analyze these sessions: ${JSON.stringify(sessions)}. Provide a productivity tip in cyberpunk theme (node, uplink, telemetry, neural, core). Return JSON: { "tag": "X", "label": "Y", "tip": "Z" }`;
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
         contents: prompt,
-        generationConfig: {
+        config: {
           responseMimeType: "application/json",
         }
       });
-
-      const text = result.response.text();
-      res.json(JSON.parse(text));
+      res.json(JSON.parse(response.text || '{}'));
     } catch (error) {
       console.error('Insights error:', error);
-      res.json({ 
-        tag: "SYSTEM_RECOVERY",
-        label: "NETWORK_GHOST",
-        tip: "Encryption interference detected. Manual focus protocols engaged. Maintain current telemetry." 
-      });
+      res.json({ tag: "SYSTEM_RECOVERY", label: "NETWORK_GHOST", tip: "Encryption interference detected. Manual focus protocols engaged. Maintain current telemetry." });
     }
   });
-
-  // Diagnostic route
-  app.get('/api/test-direct', (req, res) => {
-    res.json({ message: 'API Direct Match Success', time: new Date().toISOString() });
-  });
-
-  app.use('/api', apiRouter);
 
   // Debug: Catch-all for unhandled API routes
   app.all('/api/*', (req, res) => {
     console.warn(`[SERVER] Unhandled API request: ${req.method} ${req.url}`);
-    res.status(404).json({ 
-      error: `Route ${req.method} ${req.url} not found`,
-      availableRoutes: [
-        '/api/health',
-        '/api/auth/sync',
-        '/api/sessions',
-        '/api/ai/insights'
-      ]
-    });
+    res.status(404).json({ error: `Route ${req.method} ${req.url} not found` });
   });
 
 

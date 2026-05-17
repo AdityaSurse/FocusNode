@@ -39,13 +39,25 @@ export default function App() {
       const token = localStorage.getItem('pomo_token');
       if (token) {
         try {
-          // We don't have a getProfile endpoint, but we can verify by trying to fetch sessions
           const data = await api.getSessions();
           setSessions(data);
           setUser({ id: 'current', syncKey: localStorage.getItem('pomo_sync_key') || 'NODE-ID-HIDDEN' }); 
         } catch (e) {
-          api.logout();
-          setUser(null);
+          // If token expired, try to auto-sync a new guest session
+          try {
+            const userData = await api.sync(undefined, true);
+            setUser(userData);
+          } catch (syncErr) {
+            console.error('Auto-sync retry failed:', syncErr);
+          }
+        }
+      } else {
+        // No token, auto-create a session
+        try {
+          const userData = await api.sync(undefined, true);
+          setUser(userData);
+        } catch (e) {
+          console.error('Initial auto-sync failed:', e);
         }
       }
       setLoading(false);
@@ -98,58 +110,6 @@ export default function App() {
     </div>
   );
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-bg-deep flex flex-col items-center justify-center p-6 relative overflow-hidden">
-        <MatrixBackground />
-        <div className="bg-mesh">
-          <div className="mesh-item w-[600px] h-[600px] bg-brand/10 -top-20 -left-20" />
-          <div className="mesh-item w-[500px] h-[500px] bg-blue-500/5 top-1/2 -right-20" />
-        </div>
-        <div className="noise" />
-
-        <div className="absolute top-8 right-8 z-50">
-          <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
-        </div>
-
-        <div className="text-center mb-16 relative z-10">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center justify-center gap-4 mb-8"
-          >
-            <div className="w-16 h-16 liquid-glass rounded-2xl flex items-center justify-center text-brand">
-              <TimerIcon size={32} />
-            </div>
-          </motion.div>
-          <motion.h1 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-6xl font-black tracking-tighter text-ink uppercase font-display mb-4"
-          >
-            Focus<span className="text-brand">.</span>Node
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="text-ink/30 max-w-sm mx-auto leading-relaxed font-mono text-xs uppercase tracking-[0.2em]"
-          >
-            Secure Focus Workspace
-          </motion.p>
-        </div>
-        <motion.div
-           initial={{ opacity: 0, y: 20 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ delay: 0.3 }}
-           className="w-full max-w-md relative z-10"
-        >
-          <Auth onSuccess={onAuthSuccess} />
-        </motion.div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-bg-deep text-ink flex flex-col font-sans relative overflow-hidden">
       <MatrixBackground />
@@ -160,7 +120,7 @@ export default function App() {
       <div className="noise" />
 
       <header className="h-20 border-b border-border-subtle flex items-center justify-between backdrop-blur-xl bg-bg-deep/50 sticky top-0 z-50 px-8">
-        <div className="flex items-center gap-4 group cursor-pointer">
+        <div className="flex items-center gap-4 group cursor-pointer" onClick={() => setActiveTab('timer')}>
           <div className="w-10 h-10 liquid-glass rounded-xl flex items-center justify-center text-brand transition-transform group-hover:scale-110">
             <TimerIcon size={20} />
           </div>
@@ -216,6 +176,11 @@ export default function App() {
       </header>
 
       <main className="flex-1 max-w-5xl mx-auto w-full p-6 md:p-12 pb-24">
+        {(!user && !loading) && (
+          <div className="mb-12">
+            <Auth onSuccess={onAuthSuccess} />
+          </div>
+        )}
         <AnimatePresence mode="wait">
           {activeTab === 'timer' && (
             <motion.div
