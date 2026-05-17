@@ -19,11 +19,24 @@ export const api = {
     }
 
     const res = await fetch(path, { ...options, headers });
+    const contentType = res.headers.get('content-type');
+    
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'Request failed');
+      if (contentType && contentType.includes('application/json')) {
+        const err = await res.json();
+        throw new Error(err.error || 'Request failed');
+      } else {
+        const text = await res.text();
+        console.error('Server returned non-JSON error:', text);
+        throw new Error(`Server error: ${res.status} ${res.statusText}`);
+      }
     }
-    return res.json();
+
+    if (contentType && contentType.includes('application/json')) {
+      return res.json();
+    }
+    
+    return res.text();
   },
 
   async sync(syncKey?: string, isNew: boolean = false) {

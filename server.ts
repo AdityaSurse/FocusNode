@@ -4,30 +4,40 @@ import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from "@google/genai";
 import dotenv from 'dotenv';
 import Database from 'better-sqlite3';
-import { nanoid } from 'nanoid';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
 dotenv.config();
 
-const db = new Database('pomo.db');
+function generateId() {
+  return crypto.randomUUID();
+}
+
+const dbPath = path.resolve(process.cwd(), 'pomo.db');
+const db = new Database(dbPath);
 
 // Initialize Database
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
-    sync_key TEXT UNIQUE NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS sessions (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    session_type TEXT NOT NULL,
-    duration_minutes INTEGER NOT NULL,
-    completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  );
-`);
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      sync_key TEXT UNIQUE NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      session_type TEXT NOT NULL,
+      duration_minutes INTEGER NOT NULL,
+      completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+  console.log('Database initialized successfully at', dbPath);
+} catch (e) {
+  console.error('Failed to initialize database:', e);
+}
 
 const JWT_SECRET = process.env.JWT_SECRET || 'pomo-sync-secret-fixed';
 
@@ -36,6 +46,11 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json());
+
+  // API routes
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', time: new Date().toISOString() });
+  });
 
   // Auth Middleware
   const authenticate = (req: any, res: any, next: any) => {
@@ -64,7 +79,7 @@ async function startServer() {
         if (!user) return res.status(404).json({ error: 'Sync key not found' });
       } else {
         // Creating new node
-        const id = nanoid();
+        const id = generateId();
         const newSyncKey = Math.floor(10000000 + Math.random() * 90000000).toString();
         db.prepare('INSERT INTO users (id, sync_key) VALUES (?, ?)').run(id, newSyncKey);
         user = { id, sync_key: newSyncKey };
@@ -81,7 +96,7 @@ async function startServer() {
   // Sessions API
   app.post('/api/sessions', authenticate, async (req: any, res) => {
     const { sessionType, durationMinutes } = req.body;
-    const id = nanoid();
+    const id = generateId();
     
     try {
       db.prepare(`
@@ -166,7 +181,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('*all', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
@@ -176,4 +191,7 @@ async function startServer() {
   });
 }
 
-startServer();
+startServer().catch(err => {
+  console.error("Critical server startup error:", err);
+  process.exit(1);
+});
