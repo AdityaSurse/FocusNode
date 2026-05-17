@@ -53,8 +53,10 @@ async function startServer() {
     next();
   });
 
+  const apiRouter = express.Router();
+
   // API routes
-  app.get('/api/health', (req, res) => {
+  apiRouter.get('/health', (req, res) => {
     res.json({ status: 'ok', time: new Date().toISOString() });
   });
 
@@ -69,12 +71,13 @@ async function startServer() {
       req['userId'] = decoded.userId;
       next();
     } catch (err) {
+      console.error('[AUTH] Token verification failed:', err.message);
       res.status(401).json({ error: 'Invalid token' });
     }
   };
 
-  // Sync Logic
-  app.post('/api/auth/sync', async (req, res) => {
+  // Auth Logic
+  apiRouter.post('/auth/sync', async (req, res) => {
     const { syncKey, isNew } = req.body;
     
     try {
@@ -100,7 +103,7 @@ async function startServer() {
   });
 
   // Sessions API
-  app.post('/api/sessions', authenticate, async (req: any, res) => {
+  apiRouter.post('/sessions', authenticate, async (req: any, res) => {
     const { sessionType, durationMinutes } = req.body;
     const id = generateId();
     
@@ -117,7 +120,7 @@ async function startServer() {
     }
   });
 
-  app.delete('/api/sessions', authenticate, async (req: any, res) => {
+  apiRouter.delete('/sessions', authenticate, async (req: any, res) => {
     try {
       db.prepare('DELETE FROM sessions WHERE user_id = ?').run(req.userId);
       res.json({ success: true });
@@ -127,7 +130,7 @@ async function startServer() {
     }
   });
 
-  app.get('/api/sessions', authenticate, async (req: any, res) => {
+  apiRouter.get('/sessions', authenticate, async (req: any, res) => {
     try {
       const sessions = db.prepare(`
         SELECT * FROM sessions 
@@ -151,7 +154,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/ai/insights', authenticate, async (req: any, res) => {
+  apiRouter.post('/ai/insights', authenticate, async (req: any, res) => {
     try {
       const sessions = db.prepare('SELECT session_type, duration_minutes, completed_at FROM sessions WHERE user_id = ? ORDER BY completed_at DESC LIMIT 50').all(req.userId) as any[];
       
@@ -195,11 +198,27 @@ async function startServer() {
     }
   });
 
+  // Diagnostic route
+  app.get('/api/test-direct', (req, res) => {
+    res.json({ message: 'API Direct Match Success', time: new Date().toISOString() });
+  });
+
+  app.use('/api', apiRouter);
+
   // Debug: Catch-all for unhandled API routes
   app.all('/api/*', (req, res) => {
     console.warn(`[SERVER] Unhandled API request: ${req.method} ${req.url}`);
-    res.status(404).json({ error: `Route ${req.method} ${req.url} not found` });
+    res.status(404).json({ 
+      error: `Route ${req.method} ${req.url} not found`,
+      availableRoutes: [
+        '/api/health',
+        '/api/auth/sync',
+        '/api/sessions',
+        '/api/ai/insights'
+      ]
+    });
   });
+
 
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -210,7 +229,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('*all', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
