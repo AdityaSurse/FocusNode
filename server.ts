@@ -3,31 +3,16 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from "@google/genai";
 import dotenv from 'dotenv';
-import Database from 'better-sqlite3';
+import { createClient } from '@supabase/supabase-js';
 import { nanoid } from 'nanoid';
 import jwt from 'jsonwebtoken';
 
 dotenv.config();
 
-const db = new Database('pomo.db');
-
-// Initialize Database
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
-    sync_key TEXT UNIQUE NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS sessions (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    session_type TEXT NOT NULL,
-    duration_minutes INTEGER NOT NULL,
-    completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  );
-`);
+// Supabase Setup
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const JWT_SECRET = process.env.JWT_SECRET || 'pomo-sync-secret-fixed';
 
@@ -45,7 +30,7 @@ async function startServer() {
     const token = authHeader.split(' ')[1];
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-      req.userId = decoded.userId;
+      req['userId'] = decoded.userId;
       next();
     } catch (err) {
       res.status(401).json({ error: 'Invalid token' });
@@ -53,50 +38,95 @@ async function startServer() {
   };
 
   // Sync Logic
-  app.post('/api/auth/sync', (req, res) => {
+  app.post('/api/auth/sync', async (req, res) => {
     const { syncKey, isNew } = req.body;
     
-    let user;
-    if (syncKey && !isNew) {
-      // Joining existing node
-      user = db.prepare('SELECT * FROM users WHERE sync_key = ?').get(syncKey) as any;
-      if (!user) return res.status(404).json({ error: 'Sync key not found' });
-    } else {
-      // Creating new node
-      const id = nanoid();
-      const newSyncKey = Math.floor(10000000 + Math.random() * 90000000).toString();
-      db.prepare('INSERT INTO users (id, sync_key) VALUES (?, ?)').run(id, newSyncKey);
-      user = { id, sync_key: newSyncKey };
-    }
+    try {
+      let user;
+      if (syncKey && !isNew) {
+        // Joining existing node
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('sync_key', syncKey)
+          .single();
+        
+        if (error || !data) return res.status(404).json({ error: 'Sync key not found' });
+        user = data;
+      } else {
+        // Creating new node
+        const id = nanoid();
+        const newSyncKey = Math.floor(10000000 + Math.random() * 90000000).toString();
+        const { data, error } = await supabase
+          .from('users')
+          .insert([{ id, sync_key: newSyncKey }])
+          .select()
+          .single();
+        
+        if (error) throw error;
+        user = data;
+      }
 
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET);
-    res.json({ token, user: { id: user.id, syncKey: user.sync_key } });
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET);
+      res.json({ token, user: { id: user.id, syncKey: user.sync_key } });
+    } catch (error) {
+      console.error('Auth error:', error);
+      res.status(500).json({ error: 'Authentication failed' });
+    }
   });
 
   // Sessions API
-  app.post('/api/sessions', authenticate, (req: any, res) => {
+  app.post('/api/sessions', authenticate, async (req: any, res) => {
     const { sessionType, durationMinutes } = req.body;
     const id = nanoid();
-    db.prepare(`
-      INSERT INTO sessions (id, user_id, session_type, duration_minutes)
-      VALUES (?, ?, ?, ?)
-    `).run(id, req.userId, sessionType, durationMinutes);
     
-    res.json({ success: true, id });
+    try {
+      const { error } = await supabase
+        .from('sessions')
+        .insert([{ 
+          id, 
+          user_id: req.userId, 
+          session_type: sessionType, 
+          duration_minutes: durationMinutes 
+        }]);
+      
+      if (error) throw error;
+      res.json({ success: true, id });
+    } catch (error) {
+      console.error('Save session error:', error);
+      res.status(500).json({ error: 'Failed to save session' });
+    }
   });
 
-  app.delete('/api/sessions', authenticate, (req: any, res) => {
-    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(req.userId);
-    res.json({ success: true });
+  app.delete('/api/sessions', authenticate, async (req: any, res) => {
+    try {
+      const { error } = await supabase
+        .from('sessions')
+        .delete()
+        .eq('user_id', req.userId);
+        
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Delete sessions error:', error);
+      res.status(500).json({ error: 'Failed to clear sessions' });
+    }
   });
 
-  app.get('/api/sessions', authenticate, (req: any, res) => {
-    const sessions = db.prepare(`
-      SELECT * FROM sessions 
-      WHERE user_id = ? 
-      ORDER BY completed_at DESC
-    `).all(req.userId);
-    res.json(sessions);
+  app.get('/api/sessions', authenticate, async (req: any, res) => {
+    try {
+      const { data, error } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('user_id', req.userId)
+        .order('completed_at', { ascending: false });
+        
+      if (error) throw error;
+      res.json(data);
+    } catch (error) {
+      console.error('Get sessions error:', error);
+      res.status(500).json({ error: 'Failed to fetch sessions' });
+    }
   });
 
   // AI Setup
@@ -111,9 +141,14 @@ async function startServer() {
 
   app.post('/api/ai/insights', authenticate, async (req: any, res) => {
     try {
-      const sessions = db.prepare('SELECT session_type, duration_minutes, completed_at FROM sessions WHERE user_id = ? ORDER BY completed_at DESC LIMIT 50').all(req.userId);
+      const { data: sessions, error } = await supabase
+        .from('sessions')
+        .select('session_type, duration_minutes, completed_at')
+        .eq('user_id', req.userId)
+        .order('completed_at', { ascending: false })
+        .limit(50);
       
-      if (!sessions || (sessions as any[]).length === 0) {
+      if (error || !sessions || sessions.length === 0) {
         return res.json({ tip: "Initialize node connection to begin focus telemetry analysis." });
       }
 
