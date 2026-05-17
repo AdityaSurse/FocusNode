@@ -1,6 +1,6 @@
 {
-  "name": "PomoSync",
-  "description": "A sleek, Supabase-powered Pomodoro timer with device sync, productivity analytics, and AI-driven insights.",
+  "name": "FocusNode",
+  "description": "A futuristic, AI-powered Pomodoro timer with local sync clusters, productivity analytics, and intelligent focus insights.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

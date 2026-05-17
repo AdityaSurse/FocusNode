@@ -6,6 +6,7 @@ import { Auth } from './components/Auth';
 import { Insights } from './components/Insights';
 import { SyncSetup } from './components/SyncSetup';
 import { History, Timer as TimerIcon, LogOut, Smartphone } from 'lucide-react';
+import { ThemeToggle } from './components/ThemeToggle';
 import { motion, AnimatePresence } from 'motion/react';
 import { PomodoroSession } from './types';
 import { cn } from './lib/utils';
@@ -16,6 +17,20 @@ export default function App() {
   const [targetSessions, setTargetSessions] = useState(() => parseInt(localStorage.getItem('target_sessions') || '8'));
   const [activeTab, setActiveTab] = useState<'timer' | 'dashboard' | 'sync'>('timer');
   const [loading, setLoading] = useState(true);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('pomo_theme');
+    if (saved === 'light' || saved === 'dark') return saved;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('pomo_theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     const init = async () => {
@@ -55,6 +70,10 @@ export default function App() {
     setUser(null);
   };
 
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
   const handleSync = async (key: string) => {
     try {
       const userData = await api.sync(key);
@@ -70,49 +89,57 @@ export default function App() {
   if (loading) return (
     <div className="min-h-screen bg-bg-deep flex items-center justify-center">
       <motion.div 
-        animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }}
-        transition={{ repeat: Infinity, duration: 2 }}
-        className="w-12 h-12 rounded-full border-2 border-brand"
+        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
+        transition={{ repeat: Infinity, duration: 3 }}
+        className="w-16 h-16 rounded-full border border-brand/30 shadow-[0_0_40px_rgba(59,130,246,0.2)]"
       />
     </div>
   );
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-bg-deep flex flex-col items-center justify-center p-4 relative overflow-hidden">
-        <div className="absolute top-1/4 -left-1/4 w-[600px] h-[600px] bg-brand/5 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-1/4 -right-1/4 w-[600px] h-[600px] bg-brand/5 rounded-full blur-[120px] pointer-events-none" />
-        
-        <div className="mb-16 text-center relative z-10 transition-all">
+      <div className="min-h-screen bg-bg-deep flex flex-col items-center justify-center p-6 relative overflow-hidden">
+        <div className="bg-mesh">
+          <div className="mesh-item w-[600px] h-[600px] bg-brand/10 -top-20 -left-20" />
+          <div className="mesh-item w-[500px] h-[500px] bg-blue-500/5 top-1/2 -right-20" />
+        </div>
+        <div className="noise" />
+
+        <div className="absolute top-8 right-8 z-50">
+          <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+        </div>
+
+        <div className="text-center mb-16 relative z-10">
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-3 px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-white/40 text-[10px] font-bold uppercase tracking-[0.3em] mb-8"
-          >
-            <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
-            <span>Neural Focus Node</span>
-          </motion.div>
-          <motion.h1 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="text-[120px] font-black text-white tracking-tighter leading-none italic select-none"
+            className="flex items-center justify-center gap-4 mb-8"
           >
-            FOCUS<span className="text-brand underline decoration-8 underline-offset-[16px]">NODE</span>
+            <div className="w-16 h-16 liquid-glass rounded-2xl flex items-center justify-center text-brand">
+              <TimerIcon size={32} />
+            </div>
+          </motion.div>
+          <motion.h1 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-6xl font-black tracking-tighter text-ink uppercase font-display mb-4"
+          >
+            Focus<span className="text-brand">.</span>Node
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="text-white/20 max-w-sm mx-auto leading-relaxed mt-12 font-medium tracking-wide uppercase text-[10px]"
+            transition={{ delay: 0.2 }}
+            className="text-ink/30 max-w-sm mx-auto leading-relaxed font-mono text-xs uppercase tracking-[0.2em]"
           >
-            Minimalist logic for human productivity. <br />
-            Synchronized across all active nodes.
+            Secure Focus Workspace
           </motion.p>
         </div>
         <motion.div
-           initial={{ opacity: 0, y: 30 }}
+           initial={{ opacity: 0, y: 20 }}
            animate={{ opacity: 1, y: 0 }}
            transition={{ delay: 0.3 }}
+           className="w-full max-w-md relative z-10"
         >
           <Auth onSuccess={onAuthSuccess} />
         </motion.div>
@@ -121,97 +148,98 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-bg-deep text-[#e0e0e0] flex flex-col overflow-hidden select-none">
-      <div className="noise" />
+    <div className="min-h-screen bg-bg-deep text-ink flex flex-col font-sans relative overflow-hidden">
       <div className="bg-mesh">
-        <div className="mesh-item w-[600px] h-[600px] bg-brand/20 -top-48 -left-48" />
-        <div className="mesh-item w-[500px] h-[500px] bg-zinc-800/30 bottom-0 right-0" style={{ animationDelay: '-5s' }} />
-        <div className="mesh-item w-[400px] h-[400px] bg-brand/10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style={{ animationDelay: '-10s' }} />
+        <div className="mesh-item w-[800px] h-[800px] bg-brand/5 -top-40 -left-40" />
+        <div className="mesh-item w-[600px] h-[600px] bg-blue-500/5 bottom-0 right-0 animate-pulse-slow" />
       </div>
+      <div className="noise" />
 
-      <header className="h-20 border-b border-white/5 px-8 flex items-center justify-between bg-black/20 backdrop-blur-3xl fixed top-0 w-full z-50">
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-brand shadow-[0_0_25px_rgba(239,68,68,0.4)] flex items-center justify-center">
-              <TimerIcon size={20} className="text-white" />
-            </div>
-            <span className="text-xl font-black tracking-tighter text-white italic">FOCUS<span className="text-brand underline decoration-2 underline-offset-4">NODE</span></span>
+      <header className="h-20 border-b border-border-subtle flex items-center justify-between backdrop-blur-xl bg-bg-deep/50 sticky top-0 z-50 px-8">
+        <div className="flex items-center gap-4 group cursor-pointer">
+          <div className="w-10 h-10 liquid-glass rounded-xl flex items-center justify-center text-brand transition-transform group-hover:scale-110">
+            <TimerIcon size={20} />
           </div>
-
-          <nav className="hidden lg:flex items-center gap-2">
-            {[
-              { id: 'timer', label: 'Timer', icon: TimerIcon },
-              { id: 'dashboard', label: 'Progress', icon: History },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={cn(
-                  "flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all",
-                  activeTab === tab.id 
-                    ? "bg-white/10 text-white border border-white/20" 
-                    : "text-white/30 hover:text-white"
-                )}
-              >
-                <tab.icon size={14} />
-                {tab.label}
-              </button>
-            ))}
-          </nav>
+          <span className="text-xl font-black tracking-tighter text-ink uppercase font-display">Focus<span className="text-brand">.</span>Node</span>
         </div>
 
-        <div className="flex items-center gap-4">
+        <nav className="hidden md:flex items-center border border-border-subtle bg-surface p-1 rounded-xl">
+          {[
+            { id: 'timer', label: 'Timer' },
+            { id: 'dashboard', label: 'Stats' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={cn(
+                "px-8 py-2 rounded-lg text-[10px] font-bold tracking-[0.3em] uppercase transition-all",
+                activeTab === tab.id 
+                  ? "bg-white/10 text-white shadow-xl" 
+                  : "text-ink/20 hover:text-ink/60"
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-6">
           <button
             onClick={() => setActiveTab('sync')}
             className={cn(
-              "hidden md:flex items-center gap-3 px-4 py-2 rounded-full border transition-all group",
+              "flex items-center gap-3 px-4 py-2 rounded-xl border text-[9px] font-bold uppercase tracking-widest transition-all",
               user?.syncKey && user.syncKey !== 'NODE-ID-HIDDEN'
-                ? "bg-green-500/5 border-green-500/20 text-green-400"
-                : "bg-white/5 border-white/10 text-white/40"
+                ? "bg-brand/10 border-brand/30 text-brand"
+                : "bg-surface border-border-subtle text-ink/20"
             )}
           >
             <div className={cn(
-              "w-2 h-2 rounded-full animate-pulse",
-              user?.syncKey && user.syncKey !== 'NODE-ID-HIDDEN' ? "bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.5)]" : "bg-white/20"
+              "w-1.5 h-1.5 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)]",
+              user?.syncKey && user.syncKey !== 'NODE-ID-HIDDEN' ? "bg-brand animate-pulse" : "bg-ink/10"
             )} />
-            <span className="text-[10px] font-bold uppercase tracking-widest">
-              {user?.syncKey && user.syncKey !== 'NODE-ID-HIDDEN' ? 'Node Synced' : 'Offline Node'}
-            </span>
-            <Smartphone size={14} className="group-hover:translate-x-0.5 transition-transform" />
+            {user?.syncKey && user.syncKey !== 'NODE-ID-HIDDEN' ? 'Cloud Sync On' : 'Offline Mode'}
           </button>
+
+          <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
 
           <button 
             onClick={handleSignOut}
-            className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-all text-white/40 hover:text-white"
+            className="w-10 h-10 border border-border-subtle rounded-xl flex items-center justify-center hover:bg-surface transition-all text-ink/30 hover:text-ink"
           >
-            <LogOut size={18} />
+            <LogOut size={16} />
           </button>
         </div>
       </header>
 
-      <main className="flex-1 pt-32 pb-24 px-8 max-w-7xl mx-auto w-full overflow-y-auto overflow-x-hidden custom-scrollbar">
+      <main className="flex-1 max-w-5xl mx-auto w-full p-6 md:p-12 pb-24">
         <AnimatePresence mode="wait">
           {activeTab === 'timer' && (
             <motion.div
               key="timer"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.98 }}
+              exit={{ opacity: 0, y: -10 }}
               className="space-y-12"
             >
-              <Timer onSessionComplete={fetchSessions} sessions={sessions} targetSessions={targetSessions} />
-              <div className="max-w-2xl mx-auto w-full">
-                <Insights sessions={sessions} />
-              </div>
+              <Timer 
+                onSessionComplete={fetchSessions} 
+                sessions={sessions} 
+                targetSessions={targetSessions} 
+                onTargetUpdate={(val) => {
+                  setTargetSessions(val);
+                  localStorage.setItem('target_sessions', val.toString());
+                }}
+              />
+              <Insights sessions={sessions} />
             </motion.div>
           )}
 
           {activeTab === 'dashboard' && (
             <motion.div
               key="dashboard"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
             >
               <Dashboard 
                 sessions={sessions} 
@@ -225,9 +253,10 @@ export default function App() {
           {activeTab === 'sync' && (
             <motion.div
               key="sync"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="max-w-md mx-auto"
             >
               <SyncSetup 
                 syncKey={user?.syncKey ?? 'NODE-ID-HIDDEN'} 
@@ -242,27 +271,27 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 lg:hidden bg-black/60 backdrop-blur-2xl border-t border-white/5 py-6 px-10 flex justify-around items-center z-50">
+      <nav className="fixed bottom-0 left-0 right-0 md:hidden backdrop-blur-2xl bg-bg-deep/80 border-t border-border-subtle h-20 flex justify-around items-center z-50 px-4">
         {[
-          { id: 'timer', icon: TimerIcon },
-          { id: 'dashboard', icon: History },
-          { id: 'sync', icon: Smartphone },
+          { id: 'timer', label: 'TIMER', icon: TimerIcon },
+          { id: 'dashboard', label: 'STATS', icon: History },
+          { id: 'sync', label: 'SYNC', icon: Smartphone },
         ].map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
             className={cn(
-              "p-3 rounded-2xl transition-all relative overflow-hidden",
-              activeTab === tab.id ? "text-brand" : "text-white/20"
+              "flex-1 h-full flex flex-col items-center justify-center gap-2 transition-all",
+              activeTab === tab.id ? "text-brand" : "text-ink/20"
             )}
           >
-            <tab.icon size={26} />
-            {activeTab === tab.id && (
-              <motion.div 
-                layoutId="activeTab"
-                className="absolute inset-0 bg-brand/10 rounded-2xl -z-10" 
-              />
-            )}
+            <div className={cn(
+              "p-2 rounded-xl transition-all",
+              activeTab === tab.id ? "bg-brand/10" : ""
+            )}>
+              <tab.icon size={20} />
+            </div>
+            <span className="text-[8px] font-bold tracking-widest uppercase">{tab.label}</span>
           </button>
         ))}
       </nav>

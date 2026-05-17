@@ -13,7 +13,7 @@ export function ProTips() {
         const data = await api.getInsights();
         setTip(data.tip);
       } catch (error) {
-        setTip("Neural patterns stabilized. Maintain current focus intensity.");
+        setTip("Consistency is the secret to getting things done.");
       } finally {
         setLoading(false);
       }
@@ -22,16 +22,16 @@ export function ProTips() {
   }, []);
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-[40px] p-8 backdrop-blur-xl relative overflow-hidden group">
-      <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
-        <Zap size={80} className="text-brand" />
+    <div className="liquid-glass p-12 rounded-[32px] border border-border-subtle border-l-4 border-l-brand relative overflow-hidden group">
+      <div className="ambient-glow w-48 h-48 bg-brand/5 -top-24 -right-24 animate-pulse-slow" />
+      
+      <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:opacity-[0.1] transition-all">
+        <Zap size={100} className="text-ink" />
       </div>
       
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center">
-          <ShieldAlert size={16} className="text-brand animate-pulse" />
-        </div>
-        <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-white/40">Neural Insight</span>
+      <div className="flex items-center gap-4 mb-6 relative z-10">
+        <div className="w-2 h-2 bg-brand animate-pulse shadow-[0_0_10px_rgba(59,130,246,1)]" />
+        <span className="text-[9px] font-black uppercase tracking-[0.5em] text-brand font-display">Quick Study Tip</span>
       </div>
 
       <AnimatePresence mode="wait">
@@ -41,33 +41,28 @@ export function ProTips() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="h-12 flex items-center"
+            className="h-10 flex items-center gap-2"
           >
-            <div className="flex gap-1">
-              {[0, 1, 2].map((i) => (
-                <div 
-                  key={i} 
-                  className="w-1.5 h-1.5 bg-brand/40 rounded-full animate-bounce" 
-                  style={{ animationDelay: `${i * 0.15}s` }}
-                />
-              ))}
-            </div>
+            <span className="text-[10px] font-mono text-brand uppercase animate-pulse">Loading tip...</span>
           </motion.div>
         ) : (
-          <motion.p
+          <motion.div
             key="tip"
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="text-lg font-black text-white italic tracking-tighter leading-tight"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex gap-4"
           >
-            "{tip}"
-          </motion.p>
+            <p className="text-xl font-bold text-ink font-mono leading-tight max-w-3xl">
+              <span className="text-brand mr-2">»</span>
+              {tip}
+            </p>
+          </motion.div>
         )}
       </AnimatePresence>
       
-      <div className="mt-6 flex items-center gap-2">
-        <div className="h-[1px] flex-1 bg-white/10" />
-        <span className="text-[8px] font-mono text-white/20 uppercase tracking-[0.2em]">Cortex Analysis Active</span>
+      <div className="mt-8 pt-4 border-t border-border-subtle flex items-center justify-between">
+        <span className="text-[8px] font-mono text-ink/20 uppercase tracking-[0.3em]">Status: Secure</span>
+        <span className="text-[8px] font-mono text-ink/20 uppercase tracking-[0.3em]">Session_ID: {Math.random().toString(36).substring(7).toUpperCase()}</span>
       </div>
     </div>
   );

@@ -60,134 +60,120 @@ export function SyncSetup({ syncKey, onDataCleared, onSync }: SyncSetupProps) {
   };
 
   return (
-    <div className="space-y-8 max-w-2xl mx-auto">
-      <div className="glass-card p-10 rounded-[40px] w-full relative overflow-hidden group">
-        <div className="absolute top-0 right-0 p-12 opacity-5 group-hover:scale-110 transition-transform duration-1000">
-          <Smartphone size={160} />
-        </div>
-
-        <div className="relative z-10">
-          <div className="flex items-center gap-4 mb-10">
-            <div className="w-12 h-12 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center">
-              <Share2 className="text-brand" size={24} />
+    <div className="space-y-12 max-w-2xl mx-auto pb-20">
+      <div className="liquid-glass p-12 rounded-[32px] border border-white/5 relative overflow-hidden group">
+        <div className="ambient-glow w-64 h-64 bg-brand/5 -top-32 -left-32 animate-pulse-slow" />
+        
+        <div className="relative z-10 font-sans">
+          <div className="flex items-center gap-6 mb-12">
+            <div className="w-14 h-14 rounded-2xl bg-brand/5 border border-brand/20 flex items-center justify-center">
+              <Share2 className="text-brand shadow-[0_0_15px_rgba(59,130,246,0.5)]" size={24} />
             </div>
             <div>
-              <h3 className="text-white font-black text-2xl tracking-tighter italic uppercase">Neural Matrix</h3>
-              <p className="text-white/30 text-[10px] font-bold uppercase tracking-[0.2em]">Telemetry Synchronization</p>
+              <h3 className="text-2xl font-black text-ink tracking-tight uppercase font-display">Cloud Sync</h3>
+              <p className="text-[10px] text-ink/20 font-bold uppercase tracking-widest mt-1 font-mono">Keep your devices in sync</p>
             </div>
           </div>
           
           <div className="space-y-12">
             {/* Identity revealing section */}
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="flex justify-between items-center px-1">
-                <label className="text-[10px] font-bold text-white/30 uppercase tracking-[0.3em]">Active Node Identity</label>
+                <label className="text-[9px] font-black text-brand uppercase tracking-[0.4em]">Your Sync Key</label>
                 <button 
                   onClick={() => setShowKey(!showKey)}
-                  className="text-white/20 hover:text-white transition-colors flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest"
+                  className="text-ink/20 hover:text-brand transition-colors flex items-center gap-2 text-[9px] font-black uppercase tracking-widest"
                 >
-                  {showKey ? <EyeOff size={12} /> : <Eye size={12} />}
-                  {showKey ? 'Hide' : 'Reveal'}
+                  {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                  {showKey ? 'HIDE' : 'SHOW'}
                 </button>
               </div>
               
-              <div className="flex items-center gap-2 p-1.5 liquid-glass rounded-3xl border border-white/5 shadow-inner">
-                <div className="flex-1 px-6 py-4 font-mono text-xl font-black text-white/80 tracking-[0.5em] truncate">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 px-8 py-5 font-mono text-3xl font-black text-ink bg-surface border border-border-subtle rounded-2xl tracking-[0.4em] truncate text-center shadow-inner">
                   {showKey ? syncKey : '••••••••'}
                 </div>
-                <Button
+                <button
                   onClick={copyKey}
-                  className="rounded-2xl h-12 w-12 p-0 bg-white/5 border border-white/10 hover:bg-white/10 shadow-none"
+                  className="w-16 h-16 flex items-center justify-center bg-surface border border-border-subtle rounded-2xl hover:bg-brand/10 hover:text-brand transition-all text-ink/20"
                 >
-                  {copied ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
-                </Button>
+                  {copied ? <Check size={24} className="text-brand" /> : <Copy size={24} />}
+                </button>
               </div>
 
-              <Button 
-                variant="ghost" 
+              <button 
                 onClick={generateNewKey}
-                className="w-full text-[9px] font-black tracking-[0.3em] h-10 border border-white/5 hover:bg-white/5"
+                className="w-full text-[9px] font-black tracking-[0.3em] h-12 text-ink/10 hover:text-brand transition-all uppercase border border-dashed border-border-subtle rounded-xl flex items-center justify-center gap-3 hover:bg-surface"
               >
-                <RefreshCw size={12} className="mr-2" />
-                REGENERATE NODE ID
-              </Button>
+                <RefreshCw size={12} className="opacity-50" />
+                GENERATE NEW KEY
+              </button>
             </div>
 
-            <div className="h-[1px] bg-white/5 flex items-center justify-center">
-              <span className="bg-[#0b0b0b] px-6 text-[9px] font-black italic text-white/10 tracking-[0.5em]">BRIDGE UPLINK</span>
+            <div className="flex items-center gap-8 py-4 opacity-20">
+               <div className="h-px flex-1 bg-white" />
+               <span className="text-[8px] font-black text-white tracking-[0.6em] uppercase whitespace-nowrap">Sync with another device</span>
+               <div className="h-px flex-1 bg-white" />
             </div>
 
             {/* Input key section */}
-            <div className="space-y-4">
-              <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.3em] mb-3 px-1">Connect External Node</label>
-              <div className="flex gap-3">
+            <div className="space-y-6">
+              <label className="block text-[9px] font-black text-brand uppercase tracking-[0.4em]">Enter device key</label>
+              <div className="flex gap-4">
                 <input
                   type="text"
                   value={inputKey}
                   onChange={(e) => setInputKey(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                  placeholder="8-Digit Node ID..."
-                  className="flex-1 bg-white/5 border border-white/5 rounded-2xl px-6 py-4 text-white font-mono text-xl tracking-[0.4em] focus:outline-none focus:ring-1 focus:ring-brand/40 transition-all placeholder:text-white/10 placeholder:tracking-normal placeholder:text-xs"
+                  placeholder="00000000"
+                  className="flex-1 bg-surface border border-border-subtle rounded-2xl px-8 py-5 text-ink font-mono text-3xl tracking-[0.4em] focus:outline-none focus:border-brand placeholder:text-ink/10 placeholder:tracking-normal placeholder:text-xs text-center"
                 />
-                <Button 
+                <button 
                   onClick={handleBridge}
                   disabled={linking || !inputKey}
-                  className="px-10 h-14 bg-brand text-white font-black italic tracking-tighter"
+                  className="px-10 bg-brand text-white font-black rounded-2xl hover:bg-brand transition-all disabled:opacity-20 uppercase tracking-[0.3em] text-[10px] shadow-[0_15px_30px_rgba(0,0,0,0.5)]"
                 >
-                  {linking ? 'LINKING...' : 'BRIDGE NODE'}
-                </Button>
+                  {linking ? 'CONNECTING...' : 'SYNC'}
+                </button>
               </div>
             </div>
-          </div>
-
-          <div className="mt-12 flex items-center gap-3 p-5 bg-white/[0.02] rounded-3xl border border-white/5 group-hover:bg-white/5 transition-colors">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_15px_rgba(34,197,94,0.6)]" />
-            <p className="text-[10px] uppercase font-bold tracking-widest text-white/40">Continuous connection matrix established</p>
           </div>
         </div>
       </div>
 
-      <div className="bg-rose-500/5 border border-rose-500/10 p-10 rounded-[40px] w-full max-w-lg mx-auto backdrop-blur-xl group relative overflow-hidden transition-all hover:bg-rose-500/[0.07]">
-        <div className="relative z-10">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500">
-              <AlertTriangle size={20} />
-            </div>
-            <div>
-              <h3 className="text-rose-500 font-bold tracking-tighter italic text-lg uppercase">System Purge</h3>
-              <p className="text-rose-500/40 text-[9px] font-bold uppercase tracking-widest">Destructive Sequence</p>
-            </div>
+      <div className="liquid-glass p-12 rounded-[32px] border border-red-500/10 relative overflow-hidden group">
+        <div className="absolute inset-0 bg-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+        <div className="relative z-10 flex flex-col items-center text-center">
+          <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 mb-8 shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+            <AlertTriangle size={24} />
           </div>
-
-          <p className="text-white/30 text-[10px] uppercase font-bold tracking-widest mb-8 leading-relaxed px-1">
-            Clearing local telemetry will permanently disconnect this node from the neural matrix and wipe historical records.
+          
+          <h3 className="text-xl font-black text-ink mb-2 uppercase tracking-tight font-display">Delete All Data</h3>
+          <p className="text-[10px] text-ink/30 mb-10 max-w-[40ch] uppercase tracking-widest font-mono font-bold leading-relaxed">
+            This will permanently delete all your sessions from this device.
           </p>
 
           {!showConfirm ? (
-            <Button 
-              variant="outline" 
+            <button 
               onClick={() => setShowConfirm(true)}
-              className="w-full h-12 border-rose-900/40 hover:bg-rose-500/10 hover:text-rose-500 transition-all text-[10px] font-black tracking-widest"
+              className="px-12 py-4 text-red-500 font-bold border border-red-500/20 rounded-2xl hover:bg-red-500/10 transition-all text-[10px] uppercase tracking-widest"
             >
-              <Trash2 size={14} className="mr-2" />
-              INITIATE PURGE
-            </Button>
+              DELETE ALL DATA
+            </button>
           ) : (
-            <div className="flex gap-3">
-              <Button 
+            <div className="flex w-full gap-4 max-w-sm">
+              <button 
                 onClick={handleClearData}
                 disabled={clearing}
-                className="flex-[2] h-12 bg-rose-600 hover:bg-rose-500 text-white border-none shadow-[0_0_20px_rgba(225,29,72,0.2)] text-[10px] font-black tracking-widest"
+                className="flex-[2] h-14 bg-red-500 text-white font-black rounded-2xl hover:bg-red-600 transition-all text-[10px] uppercase tracking-widest shadow-[0_10px_20px_rgba(239,68,68,0.3)]"
               >
-                {clearing ? <RefreshCw className="animate-spin mr-2" size={14} /> : <Trash2 size={14} className="mr-2" />}
-                CONFIRM WIPE
-              </Button>
-              <Button 
-                variant="secondary"
+                {clearing ? 'DELETING...' : 'YES, DELETE EVERYTHING'}
+              </button>
+              <button 
                 onClick={() => setShowConfirm(false)}
-                className="flex-1 h-12 text-[10px] font-black tracking-widest"
+                className="flex-1 h-14 bg-surface border border-border-subtle text-ink/40 font-black rounded-2xl hover:bg-ink/10 transition-all text-[10px] uppercase tracking-widest"
               >
-                ABORT
-              </Button>
+                CANCEL
+              </button>
             </div>
           )}
         </div>

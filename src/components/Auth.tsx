@@ -28,41 +28,46 @@ export function Auth({ onSuccess }: AuthProps) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center p-12 glass-card rounded-[40px] w-full max-w-md mx-auto relative overflow-hidden group">
-      <div className="absolute -top-24 -left-24 w-48 h-48 bg-brand/10 rounded-full blur-3xl pointer-events-none group-hover:scale-150 transition-transform duration-1000" />
+    <div className="liquid-glass p-12 w-full max-w-md mx-auto rounded-[32px] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+      <div className="mb-10 text-center">
+        <h2 className="text-3xl font-black text-ink uppercase tracking-tighter font-display">
+          {isJoining ? 'Sync Device' : 'Focus Node'}
+        </h2>
+        <p className="text-[10px] text-ink/30 font-bold mt-2 uppercase tracking-[0.3em] font-mono">
+          {isJoining 
+            ? 'Connect to your other devices' 
+            : 'Private study tracker'}
+        </p>
+      </div>
       
-      <h2 className="text-3xl font-black mb-8 text-white text-center tracking-tighter italic">
-        {isJoining ? 'BRIDGE NODE' : 'INITIALIZE NODE'}
-      </h2>
-      
-      <form onSubmit={handleAuth} className="w-full space-y-6 relative z-10">
+      <form onSubmit={handleAuth} className="space-y-8">
         {isJoining && (
           <div>
-            <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.3em] mb-2 px-1">Identification Key</label>
+            <label className="block text-[9px] font-bold text-brand uppercase tracking-[0.4em] mb-4">SYNC KEY</label>
             <input
               type="text"
               value={syncKey}
               onChange={(e) => setSyncKey(e.target.value.replace(/\D/g, '').slice(0, 8))}
-              className="w-full bg-black/40 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:ring-2 focus:ring-white/20 transition-all font-mono text-2xl tracking-[0.4em] placeholder:text-white/10 placeholder:tracking-normal placeholder:text-[10px]"
-              placeholder="ENTER 8-DIGIT NODE ID"
+              className="w-full bg-surface border border-border-subtle rounded-2xl p-5 text-ink focus:outline-none focus:border-brand transition-all font-mono text-3xl text-center tracking-[0.4em] placeholder:text-ink/10"
+              placeholder="00000000"
               required
             />
           </div>
         )}
 
         {error && (
-          <div className="text-brand text-[10px] font-bold uppercase tracking-widest text-center">
+          <div className="text-red-500 text-[10px] font-bold bg-red-500/10 border border-red-500/20 p-4 rounded-xl text-center uppercase tracking-widest font-mono">
             {error}
           </div>
         )}
 
-        <Button
+        <button
           type="submit"
-          className="w-full h-14 bg-white text-black font-black hover:bg-zinc-200"
+          className="w-full h-16 bg-brand text-white font-black rounded-2xl hover:bg-brand transition-all shadow-[0_0_30px_rgba(59,130,246,0.3)] uppercase tracking-[0.3em] text-xs"
           disabled={loading}
         >
-          {loading ? 'Processing...' : (isJoining ? 'CONNECT NODE' : 'GENERATE NEW NODE')}
-        </Button>
+          {loading ? 'WAITING...' : (isJoining ? 'SYNC NOW' : 'START STUDYING')}
+        </button>
       </form>
 
       <button
@@ -70,15 +75,14 @@ export function Auth({ onSuccess }: AuthProps) {
           setIsJoining(!isJoining);
           setError(null);
         }}
-        className="mt-8 text-[10px] font-bold uppercase tracking-widest text-white/30 hover:text-white transition-colors"
+        className="w-full mt-10 pt-8 text-[10px] font-black text-ink/20 hover:text-brand transition-all border-t border-border-subtle uppercase tracking-[0.3em]"
       >
-        {isJoining ? 'Create isolated node instead' : "Have an existing key? Sync here"}
+        {isJoining ? '[ START NEW ]' : "[ SYNC EXISTING DEVICE ]"}
       </button>
 
       {!isJoining && (
-        <p className="mt-6 text-[9px] text-white/10 uppercase tracking-widest text-center leading-relaxed">
-          Initializing generates a unique identity <br />
-          bridged only across your authorized nodes.
+        <p className="mt-8 text-[8px] text-ink/10 text-center uppercase tracking-[0.3em] px-4 font-mono leading-relaxed">
+          Your data stays on your device unless you choose to sync.
         </p>
       )}
     </div>
