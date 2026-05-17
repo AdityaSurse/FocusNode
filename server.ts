@@ -47,6 +47,12 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Logging Middleware
+  app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
+    next();
+  });
+
   // API routes
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', time: new Date().toISOString() });
@@ -155,20 +161,33 @@ async function startServer() {
 
       const prompt = `
         Analyze these Pomodoro focus sessions for a user: ${JSON.stringify(sessions)}.
-        Provide ONE short, punchy productivity pro-tip (max 20 words) based on their trends.
-        Style: Matrix/Cyberpunk themed (use terms like 'node', 'uplink', 'telemetry', 'neural').
-        Return ONLY the raw tip string, no JSON markers.
+        Provide a productivity insight based on their trends.
+        Style: Matrix/Cyberpunk themed (use terms like 'node', 'uplink', 'telemetry', 'neural', 'core').
+        Return a JSON object with:
+        {
+          "tag": "Short category like NEURAL_SYNC or CORE_OPTIMIZATION",
+          "label": "Short punchy title like SYSTEM_UPGRADE",
+          "tip": "Longer tip (max 25 words)"
+        }
       `;
 
       const result = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-1.5-flash",
         contents: prompt,
+        generationConfig: {
+          responseMimeType: "application/json",
+        }
       });
 
-      res.json({ tip: result.text?.trim() || "Neural patterns stabilized. Maintain focus sequence." });
+      const text = result.response.text();
+      res.json(JSON.parse(text));
     } catch (error) {
       console.error('Insights error:', error);
-      res.json({ tip: "Network interference detected. Focus on maintaining current telemetry." });
+      res.json({ 
+        tag: "SYSTEM_RECOVERY",
+        label: "NETWORK_GHOST",
+        tip: "Encryption interference detected. Manual focus protocols engaged. Maintain current telemetry." 
+      });
     }
   });
 
@@ -181,7 +200,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*all', (req, res) => {
+    app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

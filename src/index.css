@@ -82,6 +82,18 @@
   .custom-scrollbar::-webkit-scrollbar-thumb {
     @apply bg-brand/40;
   }
+
+  .scanner {
+    @apply absolute inset-0 pointer-events-none;
+    background: linear-gradient(to bottom, transparent, rgba(59, 130, 246, 0.05) 50%, transparent);
+    background-size: 100% 200%;
+    animation: scan 4s linear infinite;
+  }
+
+  @keyframes scan {
+    from { background-position: 0 100%; }
+    to { background-position: 0 -100%; }
+  }
 }
 
 @keyframes hardware-flicker {

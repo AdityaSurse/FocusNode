@@ -6,6 +6,7 @@ import { Button } from './ui/Button';
 import { api } from '../lib/api';
 import { SessionType, PomodoroSession } from '../types';
 import { startOfDay } from 'date-fns';
+import { playSound } from '../lib/sounds';
 
 interface TimerProps {
   onSessionComplete?: () => void;
@@ -84,11 +85,15 @@ export function Timer({ onSessionComplete, sessions = [], targetSessions, onTarg
     };
   }, [isActive, timeLeft]);
 
-  const toggleTimer = () => setIsActive(!isActive);
+  const toggleTimer = () => {
+    setIsActive(!isActive);
+    playSound('click');
+  };
 
   const resetTimer = () => {
     setIsActive(false);
     setTimeLeft(settings[mode]);
+    playSound('click');
   };
 
   // Keyboard Shortcuts
@@ -133,6 +138,7 @@ export function Timer({ onSessionComplete, sessions = [], targetSessions, onTarg
     setIsActive(false);
     
     if (!isManualSkip) {
+      playSound('complete');
       const modeLabels = {
         work: 'Focus Session',
         short_break: 'Short Break',
@@ -165,6 +171,7 @@ export function Timer({ onSessionComplete, sessions = [], targetSessions, onTarg
     setMode(newMode);
     setTimeLeft(settings[newMode]);
     setIsActive(false);
+    playSound('click');
   };
 
   const updateSetting = (key: keyof typeof settings, value: number) => {
@@ -215,6 +222,7 @@ export function Timer({ onSessionComplete, sessions = [], targetSessions, onTarg
 
       {/* Main Timer Display */}
       <div className="w-full liquid-glass p-16 flex flex-col items-center relative overflow-hidden rounded-[40px] group border border-white/10">
+        <div className="scanner opacity-20" />
         <div className="ambient-glow w-96 h-96 bg-brand/5 -top-48 -right-48 animate-pulse-slow" />
         
         <div className="flex items-center gap-2 mb-12 relative z-10">

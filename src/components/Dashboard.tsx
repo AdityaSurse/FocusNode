@@ -39,6 +39,7 @@ interface DashboardProps {
 }
 
 import { ProTips } from './ProTips';
+import { SystemLogs } from './SystemLogs';
 
 export function Dashboard({ sessions, loading, targetSessions, setTargetSessions }: DashboardProps) {
   const stats = useMemo(() => {
@@ -275,12 +276,12 @@ export function Dashboard({ sessions, loading, targetSessions, setTargetSessions
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         {/* Activity Heatmap */}
-        <div className="lg:col-span-7 glass-card p-10 rounded-3xl border border-white/5">
+        <div className="lg:col-span-8 glass-card p-10 rounded-3xl border border-white/5">
           <div className="flex items-center justify-between mb-10">
             <h3 className="text-ink/20 font-bold uppercase tracking-[0.4em] text-[8px]">Study History</h3>
             <div className="flex items-center gap-1.5">
               {[0.1, 0.3, 0.6, 1].map((op) => (
-                <div key={op} className="w-2 h-2 bg-brand rounded-sm" style={{ opacity: op }} />
+                <div key={op} className="w-2 h-2 bg-brand rounded-sm shadow-[0_0_8px_rgba(59,130,246,0.2)]" style={{ opacity: op }} />
               ))}
             </div>
           </div>
@@ -302,8 +303,14 @@ export function Dashboard({ sessions, loading, targetSessions, setTargetSessions
           </div>
         </div>
 
+        <div className="lg:col-span-4">
+           <SystemLogs />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         {/* Recent Sessions List */}
-        <div className="lg:col-span-5 glass-card p-10 flex flex-col rounded-3xl border border-white/5">
+        <div className="lg:col-span-12 glass-card p-10 flex flex-col rounded-3xl border border-white/5">
           <h3 className="text-ink/20 font-bold uppercase tracking-[0.4em] text-[8px] mb-10">Recent Sessions</h3>
           <div className="space-y-3">
             {sessions.slice(0, 5).map((session) => (

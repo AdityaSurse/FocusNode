@@ -11,6 +11,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { PomodoroSession } from './types';
 import { cn } from './lib/utils';
 
+import { MatrixBackground } from './components/MatrixBackground';
+
 export default function App() {
   const [user, setUser] = useState<{ id: string; syncKey: string } | null>(null);
   const [sessions, setSessions] = useState<PomodoroSession[]>([]);
@@ -99,6 +101,7 @@ export default function App() {
   if (!user) {
     return (
       <div className="min-h-screen bg-bg-deep flex flex-col items-center justify-center p-6 relative overflow-hidden">
+        <MatrixBackground />
         <div className="bg-mesh">
           <div className="mesh-item w-[600px] h-[600px] bg-brand/10 -top-20 -left-20" />
           <div className="mesh-item w-[500px] h-[500px] bg-blue-500/5 top-1/2 -right-20" />
@@ -149,6 +152,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-bg-deep text-ink flex flex-col font-sans relative overflow-hidden">
+      <MatrixBackground />
       <div className="bg-mesh">
         <div className="mesh-item w-[800px] h-[800px] bg-brand/5 -top-40 -left-40" />
         <div className="mesh-item w-[600px] h-[600px] bg-blue-500/5 bottom-0 right-0 animate-pulse-slow" />

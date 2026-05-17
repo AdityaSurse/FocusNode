@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@google/genai": "^2.3.0",
-    "@supabase/supabase-js": "^2.105.4",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
     "better-sqlite3": "^12.10.0",
@@ -36,6 +35,6 @@
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
-    "vite": "^8.0.13"
+    "vite": "^6.2.3"
   }
 }
